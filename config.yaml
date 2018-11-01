@@ -1,0 +1,63 @@
+---
+
+rpzFile: /etc/bind/zones/db.rpz.blacklist.local
+rpzTemplate: /etc/blacklist2rpz/rpz_zone.j2
+tempDir: /var/local/blacklist2rpz
+zoneName: rpz.blacklist.local
+defaultPolicy: NXDOMAIN
+
+remoteBlacklists:
+  - name: StevenBlack
+    url: 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts'
+    format: hostsFile
+  - name: malwaredomains
+    url: 'https://mirror1.malwaredomains.com/files/justdomains'
+    format: raw
+  - name: cameleon
+    url: 'http://sysctl.org/cameleon/hosts'
+    format: hostsFile
+  - name: abuse.ch
+    url: 'https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist'
+    format: raw
+  - name: disconnect.me_tracking
+    url: 'https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt'
+    format: raw
+  - name: ransomwareTracker
+    url: 'https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt'
+    format: raw
+  - name: disconnect.me_ad
+    url: 'https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt'
+    format: raw
+  - name: hosts-file.net
+    url: 'https://hosts-file.net/ad_servers.txt'
+    format: hostsFile
+#  - name: chadmayfield-pornlist
+#    url : 'https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list'
+#    format: raw
+# currently we support formats of:
+#   * domainList
+#       - considers lines starting "#" as comments
+#       - one domain/subdomain per line
+#   * raw
+#       - considers lines starting "#" as comments
+#       - one hostname per line
+#   * hostsFile
+#       - considers lines starting "#" as comments
+#       - multiple hosts per line (typical hosts file with aliases)
+exclusions:
+  - www.googleadservices.com  # needed for google shopping
+  - pagead.l.doubleclick.net  # CNAME for www.googleadservices.com needed for google shopping
+  - raw.githubusercontent.com
+  - mirror1.malwaredomains.com
+  - sysctl.org
+  - zeustracker.abuse.ch
+  - s3.amazonaws.com
+  - hosts-file.net
+  - piwik.org
+  - mobile.audible.com
+  - techartsnetwork.com
+  - officeapps.live.com
+
+# we can also add our own local backlist
+#localblacklist:
+#  - evilhost.example.com  # going there does evil stuff

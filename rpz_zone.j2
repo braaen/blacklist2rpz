@@ -1,0 +1,47 @@
+; see http://www.zytrax.com/books/dns/ch9/rpz.html
+$TTL 300
+
+@        IN SOA  localhost. need.to.know.only. (
+                       {{ timestamp }} ; Serial number
+                       60         ; Refresh every minute
+                       60         ; Retry every minute
+                       432000     ; Expire in 5 days
+                       60 )       ; negative caching ttl 1 minute
+         IN NS    LOCALHOST.
+
+;example.net CNAME .
+;*.example.net CNAME .
+
+; Automatic rules start
+;
+
+{% for blacklist in remoteBlacklists %}
+; {{ blacklist.name }}
+; loaded from {{ blacklist.source }}
+  {%- if blacklist.policy == 'NXDOMAIN' %}
+    {% for entry in blacklist.list %}
+{{ entry }} CNAME .
+    {%- endfor %}
+
+  {%- elif blacklist.policy == 'NODATA' %}
+    {% for entry in blacklist.list %}
+{{ entry }} CNAME *.
+    {%- endfor %}
+
+  {%- elif blacklist.policy == 'DROP' %}
+    {% for entry in blacklist.list %}
+{{ entry }} CNAME rpz-drop.
+    {%- endfor %}
+
+  {%- elif blacklist.policy == 'PASSTHRU' %}
+    {% for entry in blacklist.list %}
+{{ entry }} CNAME rpz-passthru.
+    {%- endfor %}
+
+  {%- elif blacklist.policy == 'Local-Data' %}
+    {% for entry in blacklist.list %}
+{{ entry }} {{ policy-overrides }}
+    {%- endfor %}
+
+  {% endif %}
+{% endfor %}
