@@ -120,10 +120,11 @@ outputdata = template.render(remoteBlacklists=remoteBlacklists, timestamp=timest
 # write the config['rpzFile'] file
 with open ( config['rpzFile']+'.TMP', 'wt' ) as f:
     f.write ( outputdata )
+p = subprocess.call(['rndc', 'freeze', zoneName])
 os.rename ( config['rpzFile'], config['rpzFile']+'.old' )
 os.rename ( config['rpzFile']+'.TMP', config['rpzFile'] )
+p = subprocess.call(['rndc', 'thaw', zoneName])
 # reload bind zone file
-p = subprocess.call(['rndc', 'reload', zoneName])
 
 #    # Remove Whitelist
 #    for host in config['exclusions'].iterkeys():
