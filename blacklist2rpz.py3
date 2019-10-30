@@ -1,4 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/python3
+# Download a list of blacklists and outputs to a jinja2 template for creating an rpz zone
+# This was influenced by the py-hole project (https://github.com/glenpp/py-hole)
+# Which was in turn influenced by pi-hole (https://pi-hole.net)
+#
+# Copyright 2018 by Brian Christophter Raaen (info@rhemasound.org)
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 import yaml
 import time
@@ -41,7 +50,7 @@ timestamp = int(time.time())
 zoneName=config['zoneName']
 
 def downloadBlacklist(blacklist, tempDir, cache):
-    print "Checking {} from {}".format(blacklist['name'], blacklist['url'])
+    print("Checking {} from {}".format(blacklist['name'], blacklist['url']))
     if blacklist['name'] in cache:
         if 'download' in cache[blacklist['name']] and 'eTag' in cache[blacklist['name']]['download']:
             r = requests.head(blacklist['url'])
@@ -54,11 +63,12 @@ def downloadBlacklist(blacklist, tempDir, cache):
             cache[blacklist['name']] = {'download' : {}}
     else:
         cache[blacklist['name']] = {'download' : {}}
-    print "Downloading {}".format(blacklist['name'])
+    print("Downloading {}".format(blacklist['name']))
     r = requests.get(blacklist['url'], headers={'user-agent': 'blacklist2rpz'})
+    r.encoding = 'US-ASCII'
     downloadFile = "{}/{}-download-Cache.txt".format(tempDir, blacklist['name'])
-    with open(downloadFile, 'wb') as f:
-        f.write(r.content)
+    with open(downloadFile, 'w', encoding="US-ASCII") as f:
+        f.write(str(r.content))
     if 'ETag' in r.headers:
         cache[blacklist['name']]['download']['eTag'] = r.headers['ETag']
         cache[blacklist['name']]['download']['hash'] = hashlib.sha256(r.content).hexdigest()
@@ -66,7 +76,7 @@ def downloadBlacklist(blacklist, tempDir, cache):
     return
 
 def processBlacklist(blacklist, tempDir, cache):
-    print "Processing {}".format(blacklist['name'])
+    print("Processing {}".format(blacklist['name']))
     listing = list()
     with open(cache[blacklist['name']]['download']['file'], 'r') as f:
         temp = f.read().splitlines()
@@ -80,16 +90,24 @@ def processBlacklist(blacklist, tempDir, cache):
                 for y in x.split()[1::]:
                     if validHostname.match(y):
                         if y in config['exclusions']:
-                            print "{} Excluded from listing in {}".format(y, blacklist['name'])
+                            print("{} Excluded from listing in {}".format(y, blacklist['name']))
                         else:
-                            listing.append(y)
+                            if len(y.split('.')) < 3:
+                                listing.append(y)
+                                listing.append('*.' + y)
+                            else:
+                                listing.append(y)
             else:
                 for y in x.split():
                     if validHostname.match(y):
                         if y in config['exclusions']:
-                            print "{} Excluded from listing in {}".format(y, blacklist['name'])
+                            print("{} Excluded from listing in {}".format(y, blacklist['name']))
                         else:
-                            listing.append(y)
+                            if len(y.split('.')) < 3:
+                                listing.append(y)
+                                listing.append('*.' + y)
+                            else:
+                                listing.append(y)
     return listing
 
 remoteBlacklists = list()
@@ -105,26 +123,25 @@ for listing in config['remoteBlacklists']:
         remoteBlacklists.append({'name' : listing['name'], 'policy' : policy, 'policy-overrides' : policyOverrides, 'source' : listing['url'],  'list' : processBlacklist(listing, config['tempDir'], cache)})
     else:
         remoteBlacklists.append({'name' : listing['name'], 'policy' : policy, 'source' : listing['url'],  'list' : processBlacklist(listing, config['tempDir'], cache)})
-    print ""
+    print("")
 
-print "\n\nDone Processing all lists\n\n"
+print("\n\nDone Processing all lists\n\n")
 
 # Saving Cachefile
-print "Saving Cache file"
+print("Saving Cache file")
 with open(cacheFile, 'w') as f:
     yaml.dump(cache, f)
 
-print "Working on Jinja2 Template"
-print
+print("Working on Jinja2 Template")
+print()
 outputdata = template.render(remoteBlacklists=remoteBlacklists, timestamp=timestamp, zoneName=zoneName)
 # write the config['rpzFile'] file
 with open ( config['rpzFile']+'.TMP', 'wt' ) as f:
     f.write ( outputdata )
-p = subprocess.call(['rndc', 'freeze', zoneName])
 os.rename ( config['rpzFile'], config['rpzFile']+'.old' )
 os.rename ( config['rpzFile']+'.TMP', config['rpzFile'] )
-p = subprocess.call(['rndc', 'thaw', zoneName])
 # reload bind zone file
+p = subprocess.call(['rndc', 'reload', zoneName])
 
 #    # Remove Whitelist
 #    for host in config['exclusions'].iterkeys():
