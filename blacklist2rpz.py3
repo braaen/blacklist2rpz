@@ -140,6 +140,7 @@ with open ( config['rpzFile']+'.TMP', 'wt' ) as f:
     f.write ( outputdata )
 os.rename ( config['rpzFile'], config['rpzFile']+'.old' )
 os.rename ( config['rpzFile']+'.TMP', config['rpzFile'] )
+os.remove ( config['rpzFile'], config['rpzFile']+'.jnl' )
 # reload bind zone file
 p = subprocess.call(['rndc', 'reload', zoneName])
 
