@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # Download a list of blacklists and outputs to a jinja2 template for creating an rpz zone
 # This was influenced by the py-hole project (https://github.com/glenpp/py-hole)
 # Which was in turn influenced by pi-hole (https://pi-hole.net)
